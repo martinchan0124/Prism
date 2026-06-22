@@ -183,3 +183,4 @@ cython_debug/
 #Test Files Folder
 Test File/
 Cache/
+JSON/Prompt/
