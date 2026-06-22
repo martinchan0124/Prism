@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "project_title": "Carol",
+    "parser_architecture": "tree_topology_v1_int_id"
+  },
+  "elements_registry": {
+    "characters": {
+      "1001": {
+        "raw_name": "JACK",
+        "semantic_attributes": {
+          "Clothes": [
+            "Hat",
+            "Coat"
+          ]
+        }
+      },
+      "1002": {
+        "raw_name": "BARTENDER",
+        "semantic_attributes": {}
+      }
+    },
+    "Elements": {
+      "2001": {
+        "raw_name": "Train",
+        "semantic_attributes": {}
+      },
+      "2002": {
+        "raw_name": "stool",
+        "semantic_attributes": {}
+      },
+      "2003": {
+        "raw_name": "newspaper",
+        "semantic_attributes": {}
+      }
+    },
+    "locations": {
+      "3001": {
+        "raw_name": "NYC SUBWAY STATION",
+        "semantic_attributes": {}
+      },
+      "3002": {
+        "raw_name": "hotel",
+        "semantic_attributes": {}
+      },
+      "3003": {
+        "raw_name": "lobby",
+        "semantic_attributes": {}
+      },
+      "3004": {
+        "raw_name": "bar",
+        "semantic_attributes": {}
+      }
+    }
+  },
+  "script_scenes": {
+    "scene_1": {
+      "shot-1-1": {
+        "Spatial_path": [
+          3002,
+          3003,
+          3004
+        ],
+        "environment": {
+          "spatial": "INT",
+          "temporal": "NIGHT",
+          "semantic_attributes": {}
+        },
+        "content": "JACK enters the hotel and we follow him as he walks through the lobby to the bar.",
+        "characters": [
+          1001
+        ],
+        "Elements": []
+      },
+      "shot-1-2": {
+        "Spatial_path": [
+          3004
+        ],
+        "environment": {
+          "spatial": "INT",
+          "temporal": "NIGHT",
+          "semantic_attributes": {}
+        },
+        "content": "JACK easily finds a stool, nods to the BARTENDER and tosses him the newspaper.",
+        "characters": [
+          1001
+        ],
+        "Elements": [
+          2002,
+          2003
+        ]
+      }
+    }
+  }
+}
