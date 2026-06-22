@@ -54,7 +54,7 @@
   },
   "script_scenes": {
     "scene_1": {
-      "shot-1-1": {
+      "shot-1": {
         "Spatial_path": [
           3002,
           3003,
@@ -71,7 +71,7 @@
         ],
         "Elements": []
       },
-      "shot-1-2": {
+      "shot-2": {
         "Spatial_path": [
           3004
         ],
@@ -82,7 +82,8 @@
         },
         "content": "JACK easily finds a stool, nods to the BARTENDER and tosses him the newspaper.",
         "characters": [
-          1001
+          1001,
+          1002
         ],
         "Elements": [
           2002,
