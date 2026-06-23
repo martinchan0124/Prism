@@ -1,0 +1,21 @@
+{
+  "smjs_updates": [
+    {
+      "target_path": ["elements_registry", "characters", "1001", "semantic_attributes"],
+      "payload": {
+        "Clothes": ["Coat", "Hat"],
+        "Current_Emotion": "Anxious"
+      }
+    }
+  ],
+  "sdjs_updates": [
+    {
+      "target_path": ["script_scenes", "scene_1_shots", "shot-1", "Spatial_path"],
+      "payload": [3004]
+    },
+    {
+      "target_path": ["script_scenes", "scene_1_shots", "shot-1", "characters"],
+      "payload": [1001, 1002]
+    }
+  ]
+}

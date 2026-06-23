@@ -4,7 +4,8 @@
 ![Architecture](https://img.shields.io/badge/Architecture-1%2Bn_Topology-ff69b4?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Magic_in_Progress-yellow?style=for-the-badge)
 
-> 🎬 **A deterministic, tree-topology screenplay parser.** > 拒绝玄学语义猜测！把混乱的剧本文本，降维打击成由纯整型 `Int ID` 驱动的底层 JSON 宇宙！🌌
+> 🎬 **A deterministic, tree-topology screenplay parser.** 
+> 拒绝玄学语义猜测！把混乱的剧本文本，降维打击成由纯整型 `Int ID` 驱动的底层 JSON 宇宙！🌌
 
 ---
 

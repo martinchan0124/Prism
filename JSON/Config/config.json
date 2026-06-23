@@ -1,7 +1,18 @@
 {
-    "LLM_Model API": {
-        "model_name": "",
-        "model_API_Key": "",
-        "model_URL": ""
+  "api_settings": {
+    "provider": "deepseek",
+    "base_url": "https://api.deepseek.com",
+    "api_key_env_var": "DEEPSEEK_API_KEY"
+  },
+  "model_parameters": {
+    "model_name": "deepseek-chat",
+    "temperature": 0.0,
+    "max_tokens": 1024,
+    "response_format": {
+      "type": "json_object"
     }
+  },
+  "prompt_templates": {
+    "system_instruction": "You are Prism Core Semantic Engine. Your ONLY purpose is to extract entities and states from script shots and output STRICT JSON. You must return a JSON object containing exactly two keys: 'smjs_updates' and 'sdjs_updates'. Each key must contain an array of update payloads. DO NOT output any markdown, explanations, or conversational text."
+  }
 }
