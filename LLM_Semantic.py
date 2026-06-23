@@ -35,7 +35,7 @@ class PrismSemanticEngine:
         # 2. 获取当前的实体表映射 (防幻觉装载)
         entity_snapshot = smjs_db.get("elements_registry", {})
         
-        # 3. 注入死板的路由表 (The Routing Rules)
+# 3. 注入死板的路由表 (The Routing Rules)
         routing_rules = f"""
 [CRITICAL ROUTING RULES]
 You must construct the 'target_path' arrays exactly as below:
@@ -48,8 +48,16 @@ You must construct the 'target_path' arrays exactly as below:
    ["script_scenes", "{scene_id}_shots", "{shot_id}", "Elements"]
 4. To define the spatial path/location ID of the shot:
    ["script_scenes", "{scene_id}_shots", "{shot_id}", "Spatial_path"]
-"""
 
+[MANDATORY JSON STRUCTURE]
+Every object inside your 'smjs_updates' and 'sdjs_updates' arrays MUST strictly follow this format:
+{{
+  "target_path": ["..."],
+  "payload": "..." 
+}}
+Do NOT use the key 'value'. You MUST use the key 'payload'.
+"""
+        
         # 4. 组装最终任务
         task_prompt = f"""
 [ENVIRONMENT]
@@ -108,6 +116,10 @@ Output the exact JSON payload with 'smjs_updates' and 'sdjs_updates' arrays to u
                 response_format={"type": "json_object"}
             )
             raw_output = response.choices[0].message.content
+            print("\n[DEBUG X-RAY] DeepSeek 原始返回载荷：")
+            print(raw_output)
+            print("==========================================\n")
+            
         except Exception as e:
             print(f"[Fatal] 接口通信失败: {str(e)}")
             return False
@@ -117,18 +129,20 @@ Output the exact JSON payload with 'smjs_updates' and 'sdjs_updates' arrays to u
         if not ai_payload:
             return False
             
-        # 4. 执行 API 物理覆写路由
+      # 4. 执行 API 物理覆写路由
         for update in ai_payload.get("smjs_updates", []):
             target_path = update.get("target_path")
-            payload = update.get("payload")
+            # 兼容 AI 擅自把 payload 叫作 value 的情况
+            payload = update.get("payload") if "payload" in update else update.get("value")
             if target_path and payload is not None:
                 pjson.update_semantic_payload(smjs_db, target_path, payload)
                 
         for update in ai_payload.get("sdjs_updates", []):
             target_path = update.get("target_path")
-            payload = update.get("payload")
+            payload = update.get("payload") if "payload" in update else update.get("value")
             if target_path and payload is not None:
                 pjson.update_semantic_payload(sdjs_scene_db, target_path, payload)
-                
+
+
         print(f"  -> {shot_id} 语义覆写完成！")
         return True
