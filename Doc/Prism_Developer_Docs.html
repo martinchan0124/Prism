@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prism Core 开发者文档与 API 参考手册</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --text-color: #c9d1d9;
+            --heading-color: #58a6ff;
+            --code-bg: #161b22;
+            --border-color: #30363d;
+            --accent-color: #8b949e;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+
+        h1 { font-size: 2em; color: var(--heading-color); border-bottom: 1px solid var(--border-color); padding-bottom: .3em; }
+        h2 { font-size: 1.5em; border-bottom: 1px solid var(--border-color); padding-bottom: .3em; margin-top: 1.5em;}
+        h3 { font-size: 1.25em; margin-top: 1.2em; }
+        h4 { font-size: 1em; color: var(--accent-color); }
+
+        p, blockquote, ul, ol, dl, table, pre, details {
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+
+        ul { padding-left: 2em; }
+        
+        li { margin-top: 0.25em; }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+            font-size: 85%;
+            background-color: rgba(110,118,129,0.4);
+            padding: 0.2em 0.4em;
+            border-radius: 6px;
+        }
+
+        pre {
+            background-color: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            overflow: auto;
+            font-size: 85%;
+            line-height: 1.45;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            border-radius: 0;
+        }
+
+        strong { font-weight: 600; color: #fff; }
+        
+        hr {
+            height: 1px;
+            background-color: var(--border-color);
+            border: none;
+            margin: 24px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Prism Core 开发者文档与 API 参考手册</h1>
+
+    <h2>1. 核心架构与术语词典 (Glossary &amp; Architecture)</h2>
+    <p>Prism 采用非范式化的 <strong>1+n 拓扑路由架构</strong>。我们将非结构化的剧本视作原始声波，通过物理引擎将其“分频”并降维成绝对理性的 JSON 节点流。</p>
+
+    <h3>1.1 核心缩写与术语</h3>
+    <ul>
+        <li><strong>Prism</strong>: 本工程的核心代号。意为“棱镜”，指代系统将混乱排版的剧本文本精准折射、分离为原子化数据的物理特性。</li>
+        <li><strong>1+n 架构</strong>: 剧本数据的物理分离机制。将剧本切分为 <code>1</code> 个存放静态属性的全局状态机，和 <code>n</code> 个装载动态事件的时间线文件。</li>
+        <li><strong>SMJS (State Machine JSON)</strong>: 即 1 号文件。它是全局实体映射的“跳线盘（Patchbay）”，负责在内存中常驻所有角色（Character）、道具（Element）和空间（Location）的 <code>int</code> ID 与属性状态。相当于混音台上的通道条（Channel Strip）。</li>
+        <li><strong>SDJS (Scene Data JSON)</strong>: 即 n 号文件。以独立场次为单位切分的时间线文件。它不存储任何实体的具体细节，只记录随时间推进的动作描述以及参与该动作的 ID。相当于工程里的自动化轨（Automation Track）。</li>
+        <li><strong>Shot</strong>: 最小物理单位（镜头节点）。Prism 将自然语言里的每一段带有姓名的对白，或每一个被句号切分的纯动作短句，强行封装为一个极简的 Shot 叶子节点。</li>
+        <li><strong>Buffer (暂存器)</strong>: 清洗引擎中用于解决剧本排版粘连的机制，用于临时挂起 <code>#</code> 标题或 <code>###</code> 角色名，直到捕获到对应的正文内容后再进行合成。</li>
+    </ul>
+
+    <hr>
+
+    <h2>2. 数据结构规范 (Schema Definition)</h2>
+
+    <h3>2.1 SDJS 层级规范 (Scene Data)</h3>
+    <p>在最新的迭代中，SDJS 采用了<strong>元数据与镜头流双轨制</strong>。场次的环境描述直接挂载于外层，避免了内部节点的冗余。</p>
+
+<pre><code>{
+  "metadata": {
+    "project_title": "Lyra",
+    "parser_architecture": "tree_topology_v1_int_id",
+    "JSON Type": "Scene Data"
+  },
+  "script_scenes": {
+    "scene_1": "INT. RITZ TOWER HOTEL. BAR/LOUNGE. NIGHT.",
+    "scene_1_shots": {
+      "shot-1": {
+        "Spatial_path": [],
+        "environment": {
+          "spatial": "",
+          "temporal": "",
+          "semantic_attributes": {}
+        },
+        "content": "JACK: Therese? Is that you?",
+        "characters": [],
+        "Elements": []
+      }
+    }
+  }
+}</code></pre>
+
+    <hr>
+
+    <h2>3. Prism_JSON 核心 API 参考 (API Reference)</h2>
+    <p>该模块是 Prism 的底层数据引擎。所有针对 <code>db_ref</code> 的操作均为<strong>引用传递（Pass by Reference）</strong>，直接修改内存以换取极致的 I/O 效率。</p>
+
+    <h4>3.1 骨架生命周期管理</h4>
+    <ul>
+        <li><strong><code>create_json_template(json_type: str, project_title: str) -&gt; dict</code></strong>
+            <ul>
+                <li><strong>功能描述</strong>：生成标准拓扑结构的空壳字典。</li>
+                <li><strong><code>json_type</code></strong>：限制为 <code>"SMJS"</code> 或 <code>"SDJS"</code>。引擎会据此动态生成不同的内部挂载点。</li>
+                <li><strong><code>project_title</code></strong>：注入到 Metadata 中的工程名。</li>
+                <li><strong>返回</strong>：准备好装载数据的 Python <code>dict</code>。</li>
+            </ul>
+        </li>
+        <li><strong><code>flush_to_disk(db_ref: dict, output_filepath: str) -&gt; bool</code></strong>
+            <ul>
+                <li><strong>功能描述</strong>：将内存状态固化为硬盘上的 <code>.json</code> 文件。</li>
+                <li><strong>机制</strong>：强制关闭 <code>ensure_ascii</code>，关闭键名重排，严格锁定 2 空格缩进，确保输出结果对 Git 的 Diff 工具绝对友好。</li>
+            </ul>
+        </li>
+    </ul>
+
+    <h4>3.2 实体路由注册 (SMJS 专用)</h4>
+    <ul>
+        <li><strong><code>register_smjs_entity(db_ref: dict, category: str, entity_id: int, raw_name: str) -&gt; bool</code></strong>
+            <ul>
+                <li><strong>功能描述</strong>：在全局跳线盘上开辟新的实体通道。</li>
+                <li><strong><code>category</code></strong>：限定词，仅支持 <code>"characters"</code>, <code>"Elements"</code>, <code>"locations"</code>。</li>
+                <li><strong><code>entity_id</code></strong>：纯整数 ID（如 1001），在底层会被转化为字符串键值映射。</li>
+                <li><strong><code>raw_name</code></strong>：文本中提取的原始明文。</li>
+            </ul>
+        </li>
+    </ul>
+
+    <h4>3.3 时间线注入 (SDJS 专用)</h4>
+    <ul>
+        <li><strong><code>init_sdjs_scene(db_ref: dict, scene_id: str, heading_text: str) -&gt; bool</code></strong>
+            <ul>
+                <li><strong>功能描述</strong>：初始化单个场次的时间线。</li>
+                <li><strong>机制</strong>：构建双轨层级。将 <code>heading_text</code> 直接挂载于 <code>scene_id</code>，并自动生成对应的 <code>scene_n_shots</code> 容器，用于后续承接 Shot 节点。</li>
+            </ul>
+        </li>
+        <li><strong><code>append_sdjs_shot(db_ref: dict, scene_id: str, shot_id: str, raw_content: str) -&gt; bool</code></strong>
+            <ul>
+                <li><strong>功能描述</strong>：向指定场次的叶子节点注入剥离了所有脏格式（如 <code>\n</code>）的纯净物理短句。</li>
+                <li><strong>机制</strong>：在注入 <code>raw_content</code> 的同时，强制生成结构为空的 <code>Spatial_path</code> 数组及各类载荷列表，为 AI 语义引擎提供预留好的标准化填空卡槽。</li>
+            </ul>
+        </li>
+    </ul>
+
+    <h4>3.4 语义覆写网关 (AI 交互专用)</h4>
+    <ul>
+        <li><strong><code>update_semantic_payload(db_ref: dict, target_path: list, payload: any) -&gt; bool</code></strong>
+            <ul>
+                <li><strong>功能描述</strong>：泛用型底层状态覆写接头，允许 AI 通过绝对路径直接修改属性。</li>
+                <li><strong><code>target_path</code></strong>：寻址路径数组，例如 <code>['elements_registry', 'characters', '1001', 'semantic_attributes']</code>。</li>
+                <li><strong><code>payload</code></strong>：传入的修改载荷。</li>
+                <li><strong>融合保护机制</strong>：若寻址终点为 <code>dict</code> 且载荷亦为 <code>dict</code>（如追加衣物属性），引擎将执行无损增量融合（<code>update</code>）；若为 <code>list</code>（如空间动线更新），则执行物理覆盖。</li>
+            </ul>
+        </li>
+    </ul>
+
+    <hr>
+
+    <h2>4. 物理降维管线 (Clarifier Pipeline)</h2>
+    <p>位于 <code>Docx_Clarifier.py</code> 与 <code>PDF_Clarifier.py</code> 中的解析引擎，专门对付极不规范的原始剧本媒介。</p>
+
+    <ul>
+        <li><strong><code>WordDocClarify(inputFileDes: str, outputFileDes: str) -&gt; bool</code></strong>
+            <ul>
+                <li><strong>工作流</strong>：探测 <code>.docx</code> 底层 XML，提取段落相对左缩进（<code>left_indent</code>）以及首行空格补偿，以此丈量文本层级。</li>
+            </ul>
+        </li>
+        <li><strong><code>PDFClarify(inputFileDes: str, outputFileDes: str) -&gt; bool</code></strong>
+            <ul>
+                <li><strong>工作流</strong>：介入 PDF 绝对页面体系，抓取每一行文本的 <code>x0</code> 包围盒绝对物理坐标，并将其换算为英寸（1 英寸 = 72 pt）来切割版面。</li>
+            </ul>
+        </li>
+        <li><strong><code>MarkdownRefine(rawMarkdown: str) -&gt; str</code></strong>
+            <ul>
+                <li><strong>工作流</strong>：嵌套在降维管线末端的精密过滤器。利用零宽断言与正则，物理抹杀 <code>(CONT'D)</code>、<code>(V.O.)</code> 等分页与影视工业残留，强制使用双换行确保台词与动作描述的彻底隔离。</li>
+            </ul>
+        </li>
+    </ul>
+
+</body>
+</html>
