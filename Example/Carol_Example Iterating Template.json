@@ -1,0 +1,56 @@
+{
+  "metadata": {
+    "project_title": "Carol",
+    "parser_architecture": "tree_topology_v1_int_id",
+    "JSON Type": "Script Data"
+  },
+  "elements_registry": {
+    "characters": {
+      "1001": {
+        "raw_name": "JACK",
+        "semantic_attributes": {
+          "Clothes": [
+            "Hat",
+            "Coat"
+          ]
+        }
+      },
+      "1002": {
+        "raw_name": "BARTENDER",
+        "semantic_attributes": {}
+      }
+    },
+    "Elements": {
+      "2001": {
+        "raw_name": "Train",
+        "semantic_attributes": {}
+      },
+      "2002": {
+        "raw_name": "stool",
+        "semantic_attributes": {}
+      },
+      "2003": {
+        "raw_name": "newspaper",
+        "semantic_attributes": {}
+      }
+    },
+    "locations": {
+      "3001": {
+        "raw_name": "NYC SUBWAY STATION",
+        "semantic_attributes": {}
+      },
+      "3002": {
+        "raw_name": "hotel",
+        "semantic_attributes": {}
+      },
+      "3003": {
+        "raw_name": "lobby",
+        "semantic_attributes": {}
+      },
+      "3004": {
+        "raw_name": "bar",
+        "semantic_attributes": {}
+      }
+    }
+  }
+}

@@ -32,13 +32,11 @@ def create_json_template(json_type: str, project_title: str) -> Dict:
 
 
 # ==========================================
-# 模块二：SMJS 状态机实体注入
+# 模块二：SMJS 状态机写入
 # ==========================================
 def register_smjs_entity(db_ref: Dict, category: str, entity_id: int, raw_name: str) -> bool:
-    """
-    在 SMJS 数据库中注册一个新的基础实体。
-    category: "characters", "Elements" 或 "locations"
-    """
+    
+    #category: "characters", "Elements" 或 "locations"
     if "elements_registry" not in db_ref:
         return False
         
@@ -59,9 +57,8 @@ def register_smjs_entity(db_ref: Dict, category: str, entity_id: int, raw_name: 
 # 模块三：SDJS 时间线物理构建
 # ==========================================
 def init_sdjs_scene(db_ref: Dict, scene_id: str) -> bool:
-    """
-    在 SDJS 中开启一个新的大场次容器。
-    """
+    
+    #在 SDJS 中开启一个新的大场次容器。
     if "script_scenes" not in db_ref:
         return False
         
