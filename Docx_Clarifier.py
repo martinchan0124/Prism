@@ -105,7 +105,7 @@ def WordDocClarify(inputFileDes: str, outputFileDes: str) -> bool:
         print(f"[Exception] 清洗过程中发生致命错误: {str(e)}")
         return False
 
-if __name__ == "__main__":
+""" if __name__ == "__main__":
     input_word = "Test File/TEST SCRIPT carol-2015.docx"
     output_md = "Cache/Carol_Cleaned 03.md"
-    WordDocClarify(input_word, output_md)
+    WordDocClarify(input_word, output_md) """

@@ -127,7 +127,7 @@ def PDFClarify(inputFileDes: str, outputFileDes: str) -> bool:
         print(f"[Exception] PDF 解析过程中发生致命错误: {str(e)}")
         return False
 
-# ---------------------------------------------------------
+""" # ---------------------------------------------------------
 # 本地调试与调用入口
 # ---------------------------------------------------------
 if __name__ == "__main__":
@@ -141,4 +141,4 @@ if __name__ == "__main__":
     if success:
         print(f"清洗成功！底层 Markdown 数据已落盘至: {output_md_path}")
     else:
-        print("清洗中断，请检查控制台报错信息。")
+        print("清洗中断，请检查控制台报错信息。") """
