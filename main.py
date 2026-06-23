@@ -1,4 +1,5 @@
 import os
+import re
 from Docx_Clarifier import WordDocClarify
 import Prism_JSON as pjson
 
@@ -6,25 +7,19 @@ def main():
     # ==========================================
     # 1. 业务逻辑配置与环境初始化
     # ==========================================
-    # 暂时硬编码输入文件（假设你放在根目录或 Test File 文件夹下，可根据实际情况微调）
     input_docx_path = "Test File/TEST SCRIPT carol-2015.docx" 
     
     if not os.path.exists(input_docx_path):
         print(f"[Fatal] 找不到输入文件: {input_docx_path}")
         return
 
-    # 提取基础文件名 (去除后缀) 
-    # 例如: "TEST SCRIPT carol-2015"
+    # 提取基础文件名与工程名
     base_name = os.path.splitext(os.path.basename(input_docx_path))[0]
-    
-    # 提取工程名 (简单的字符串清洗，用于写入 JSON metadata)
     project_title = base_name.replace("TEST SCRIPT ", "").replace("-", " ").title().strip()
 
     # 设定输出目录
     cache_dir = "Cache"
     json_out_dir = "Prompt JSON"
-    
-    # 动态创建文件夹。exist_ok=True 保证了文件夹如果已存在，会直接跳过而不会报错崩溃
     os.makedirs(cache_dir, exist_ok=True)
     os.makedirs(json_out_dir, exist_ok=True)
 
@@ -42,44 +37,111 @@ def main():
         return
 
     # ==========================================
-    # 3. JSON 拓扑骨架初始化与挂载阶段
+    # 3. JSON 拓扑骨架初始化与全文遍历切分
     # ==========================================
-    print(f"[*] [阶段 2] 降维成功，开始构建 1+n 状态机与时间线骨架...")
+    print(f"[*] [阶段 2] 降维成功，开始全文遍历并构建 1+n 数据拓扑...")
     
-    # 初始化 1 号文件 (全局状态机 SMJS)
+    # 1 号文件：全局状态机 SMJS，仅需初始化一次
     smjs_db = pjson.create_json_template("SMJS", project_title)
     
-    # 初始化 n 号文件 (第一场戏时间线 SDJS)
-    sdjs_scene1_db = pjson.create_json_template("SDJS", project_title)
+    # 读取清洗好的纯净 Markdown
+    with open(output_md_path, "r", encoding="utf-8") as f:
+        md_text = f.read()
+
+    # 按双换行物理切分所有文本块
+    blocks = md_text.split('\n\n')
     
-    # ----------------------------------------------------------------
-    # [TO-DO]: 这里未来将挂载你自己的 Markdown 读取与正则硬切分循环代码。
-    # 逻辑将是：读取 output_md_path -> 按 # 分切 Scene -> 按空行分切 Shot -> 塞入 JSON API
-    # ----------------------------------------------------------------
+    current_scene_id = None
+    current_sdjs = None
+    scene_counter = 0
+    shot_counter = 1
     
-    # 目前我们先强行调用 API 注入一条测试数据，验证整个内存到硬盘的流转是否畅通
-    pjson.init_sdjs_scene(sdjs_scene1_db, "scene_1")
-    pjson.append_sdjs_shot(
-        sdjs_scene1_db, 
-        scene_id="scene_1", 
-        shot_id="shot-1", 
-        raw_content="This is an automated test shot injected by main.py engine."
-    )
+    # 角色名暂存器，用于解决名字与台词断层的问题
+    pending_character = None 
+
+    for block in blocks:
+        block = block.strip()
+        if not block:
+            continue
+
+        # 遇到新的一场戏 (Scene Heading)
+        if block.startswith('# '):
+            if current_sdjs:
+                sdjs_out_path = os.path.join(json_out_dir, f"{project_title}_SDJS_{current_scene_id}.json")
+                pjson.flush_to_disk(current_sdjs, sdjs_out_path)
+                print(f"  -> {current_scene_id} 拆分完毕，已落盘。")
+
+            scene_counter += 1
+            current_scene_id = f"scene_{scene_counter}"
+            current_sdjs = pjson.create_json_template("SDJS", project_title)
+            
+            # 【修复3】：直接提取标题，剔除换行，传入 scene_n 层级
+            heading_text = block.replace('# ', '').replace('\n', ' ').strip()
+            pjson.init_sdjs_scene(current_sdjs, current_scene_id, heading_text)
+            
+            shot_counter = 1
+            pending_character = None
+
+        # 遇到角色名 (将其挂起入暂存器)
+        elif block.startswith('### '):
+            pending_character = block.replace('### ', '').replace('\n', ' ').strip()
+
+        # 遇到普通动作、括号提示或台词
+        else:
+            if not current_scene_id:
+                continue 
+
+            # 情况 A：台词与角色融合（强制带有冒号）
+            if pending_character and block.startswith('> '):
+                dialogue_text = block.replace('> ', '').replace('\n', ' ').strip()
+                content_str = f"{pending_character}: {dialogue_text}"
+                pending_character = None
+                
+                shot_id = f"shot-{shot_counter}"
+                pjson.append_sdjs_shot(current_sdjs, current_scene_id, shot_id, content_str)
+                shot_counter += 1
+            
+            # 【修复1 & 2】情况 B：异常排版容错（强制加上冒号，并剔除换行符）
+            elif pending_character:
+                cleaned_block = block.replace('\n', ' ').strip()
+                content_str = f"{pending_character}: {cleaned_block}"
+                pending_character = None
+                
+                shot_id = f"shot-{shot_counter}"
+                pjson.append_sdjs_shot(current_sdjs, current_scene_id, shot_id, content_str)
+                shot_counter += 1
+                
+            # 情况 C：纯粹的动作描述（启动句子级细化切割）
+            else:
+                sentences = re.split(r'(?<=[.!?])\s+', block)
+                
+                for sentence in sentences:
+                    # 【修复2】：斩断所有段落内的 \n，替换为空格
+                    sentence = sentence.replace('\n', ' ').strip()
+                    if sentence: 
+                        shot_id = f"shot-{shot_counter}"
+                        pjson.append_sdjs_shot(current_sdjs, current_scene_id, shot_id, sentence)
+                        shot_counter += 1
+
+
+    # 循环结束后，不要忘记把最后一场戏的 SDJS 落盘
+    if current_sdjs:
+        sdjs_out_path = os.path.join(json_out_dir, f"{project_title}_SDJS_{current_scene_id}.json")
+        pjson.flush_to_disk(current_sdjs, sdjs_out_path)
+        print(f"  -> {current_scene_id} 拆分完毕，已落盘。")
+
+    # 最后，将全局实体状态机 SMJS 落盘
+    smjs_out_path = os.path.join(json_out_dir, f"{project_title}_SMJS.json")
+    pjson.flush_to_disk(smjs_db, smjs_out_path)
 
     # ==========================================
-    # 4. 物理落盘阶段
+    # 4. 流程结束统计
     # ==========================================
-    smjs_out_path = os.path.join(json_out_dir, f"{project_title}_SMJS.json")
-    sdjs_out_path = os.path.join(json_out_dir, f"{project_title}_SDJS_scene_1.json")
-    
-    print(f"[*] [阶段 3] 执行内存状态固化与物理落盘...")
-    pjson.flush_to_disk(smjs_db, smjs_out_path)
-    pjson.flush_to_disk(sdjs_scene1_db, sdjs_out_path)
-    
     print("=" * 40)
-    print(f"[*] Prism 管线执行完毕！")
-    print(f"[*] 状态机实体数据 (SMJS) 已落盘: {smjs_out_path}")
-    print(f"[*] 场景时间线数据 (SDJS) 已落盘: {sdjs_out_path}")
+    print(f"[*] Prism 引擎处理完毕！")
+    print(f"[*] 共解析了 {scene_counter} 个场景文件 (SDJS)。")
+    print(f"[*] 全局状态机 (SMJS) 已同步更新。")
+    print(f"[*] 所有输出已送达目录: ./{json_out_dir}/")
 
 if __name__ == "__main__":
     main()

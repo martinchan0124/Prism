@@ -56,25 +56,29 @@ def register_smjs_entity(db_ref: Dict, category: str, entity_id: int, raw_name: 
 # ==========================================
 # 模块三：SDJS 时间线物理构建
 # ==========================================
-def init_sdjs_scene(db_ref: Dict, scene_id: str) -> bool:
-    
-    #在 SDJS 中开启一个新的大场次容器。
+def init_sdjs_scene(db_ref: Dict, scene_id: str, heading_text: str) -> bool:
+    """
+    在 SDJS 中开启一个新的大场次容器。
+    同时将场次的环境元数据 (INT/EXT) 作为同级节点独立保存。
+    """
     if "script_scenes" not in db_ref:
         return False
         
-    if scene_id not in db_ref["script_scenes"]:
-        db_ref["script_scenes"][scene_id] = {}
+    # 建立双轨制结构：一个是环境标题，一个是装载镜头的对象
+    db_ref["script_scenes"][scene_id] = heading_text
+    db_ref["script_scenes"][f"{scene_id}_shots"] = {}
         
     return True
 
 def append_sdjs_shot(db_ref: Dict, scene_id: str, shot_id: str, raw_content: str) -> bool:
     """
-    将物理文本流注入到最底层的叶子节点，并强制预留空占位符。
+    将物理文本流注入到最底层的叶子节点。
     """
-    if "script_scenes" not in db_ref or scene_id not in db_ref["script_scenes"]:
+    target_shots_container = f"{scene_id}_shots"
+    if "script_scenes" not in db_ref or target_shots_container not in db_ref["script_scenes"]:
         return False
 
-    db_ref["script_scenes"][scene_id][shot_id] = {
+    db_ref["script_scenes"][target_shots_container][shot_id] = {
         "Spatial_path": [],
         "environment": {
             "spatial": "",
@@ -86,7 +90,6 @@ def append_sdjs_shot(db_ref: Dict, scene_id: str, shot_id: str, raw_content: str
         "Elements": []
     }
     return True
-
 
 # ==========================================
 # 模块四：AI 语义特征覆写
