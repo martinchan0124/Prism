@@ -116,9 +116,11 @@ Output the exact JSON payload with 'smjs_updates' and 'sdjs_updates' arrays to u
                 response_format={"type": "json_object"}
             )
             raw_output = response.choices[0].message.content
-            print("\n[DEBUG X-RAY] DeepSeek 原始返回载荷：")
+            
+            # 2.5. 调试输出 (可选)
+            """ print("\n[DEBUG X-RAY] DeepSeek 原始返回载荷：")
             print(raw_output)
-            print("==========================================\n")
+            print("==========================================\n") """
             
         except Exception as e:
             print(f"[Fatal] 接口通信失败: {str(e)}")
