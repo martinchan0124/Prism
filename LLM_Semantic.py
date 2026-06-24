@@ -48,14 +48,16 @@ You must construct the 'target_path' arrays exactly as below:
    ["script_scenes", "{scene_id}_shots", "{shot_id}", "Elements"]
 4. To define the spatial path/location ID of the shot:
    ["script_scenes", "{scene_id}_shots", "{shot_id}", "Spatial_path"]
+   
+[SEMANTIC EXTRACTION RADAR]
+When populating 'semantic_attributes' for a character, DO NOT be lazy. You must actively scan the text for the following dimensions, BUT ONLY create the key if the text EXPLICITLY mentions it (Do not invent details):
+- "age": Exact age or age range (e.g., "late 20s", "old").
+- "clothes": Any wearing apparel or accessories (e.g., "coat and hat").
+- "physical_state": Posture or physical condition (e.g., "pallid", "standing", "wounded").
+- "mood": Emotional state (e.g., "angry", "contemplative").
+- "action": What they are physically doing in this exact shot (e.g., "buying a paper").
 
-[MANDATORY JSON STRUCTURE]
-Every object inside your 'smjs_updates' and 'sdjs_updates' arrays MUST strictly follow this format:
-{{
-  "target_path": ["..."],
-  "payload": "..." 
-}}
-Do NOT use the key 'value'. You MUST use the key 'payload'.
+If the text does not mention 'clothes', simply do not include the 'clothes' key. 
 """
         
         # 4. 组装最终任务
