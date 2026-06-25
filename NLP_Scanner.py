@@ -1,10 +1,13 @@
 import spacy
 import re
 import Prism_JSON as pjson
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 class PrismNLPEngine:
     def __init__(self, model_size="en_core_web_sm"):
-        print(f"[*] 正在向内存装载 NLP 引擎 ({model_size})...")
+        logging.info(f"[*] 正在向内存装载 NLP 引擎 ({model_size})...")
         self.nlp = spacy.load(model_size)
 
     def _normalize_name(self, name: str) -> str:
@@ -25,7 +28,7 @@ class PrismNLPEngine:
         return sorted(unique_roster)
 
     def scan_and_register_entities(self, md_text: str, smjs_db: dict) -> dict:
-        print("[*] 启动全量物理特征预扫描 (Two-Pass: Pass 1)...")
+        logging.info("[*] 启动全量物理特征预扫描 (Two-Pass: Pass 1)...")
         found_persons = set()
         found_locations = set()
         
@@ -77,5 +80,5 @@ class PrismNLPEngine:
             global_registry["locations"][loc] = loc_id
             loc_id += 1
             
-        print(f"[*] 预扫描完成。共注册 {len(global_registry['characters'])} 个角色, {len(global_registry['locations'])} 个地点。")
+        logging.info(f"[*] 预扫描完成。共注册 {len(global_registry['characters'])} 个角色, {len(global_registry['locations'])} 个地点。")
         return global_registry

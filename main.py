@@ -10,6 +10,27 @@ from NLP_Scanner import PrismNLPEngine  # [新增] 导入本地 NLP 前置扫描
 # 强制加载环境密钥
 load_dotenv()
 
+import logging
+from datetime import datetime
+
+# ==========================================
+# 0. 全局日志系统 (logging Bus) 挂载
+# ==========================================
+os.makedirs("Logs", exist_ok=True)
+# 按当前时间戳生成日志文件名，例如：Prism_Run_20260625_125042.log
+log_filename = datetime.now().strftime("Logs/Prism_Run_%Y%m%d_%H%M%S.log")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(log_filename, encoding='utf-8'),
+        # 如果你希望终端完全安静，把下面这行注释掉。
+        # 如果保留，它会同时把日志写进文件和打印在终端里（类似于监听 Send）
+        logging.StreamHandler() 
+    ]
+)
+
 def main():
     # ==========================================
     # 1. 业务逻辑配置与环境初始化
@@ -17,7 +38,7 @@ def main():
     input_docx_path = "Test File/TEST SCRIPT carol-2015.docx" 
     
     if not os.path.exists(input_docx_path):
-        print(f"[Fatal] 找不到输入文件: {input_docx_path}")
+        logging.info(f"[Fatal] 找不到输入文件: {input_docx_path}")
         return
 
     base_name = os.path.splitext(os.path.basename(input_docx_path))[0]
@@ -33,13 +54,13 @@ def main():
     # ==========================================
     output_md_path = os.path.join(cache_dir, f"{base_name}_Cleaned.md")
     
-    print("=" * 50)
-    print(f"[*] 启动 Prism 核心管线...")
-    print(f"[*] [阶段 1] 正在提取物理文本并降维至: {output_md_path}")
+    logging.info("=" * 50)
+    logging.info(f"[*] 启动 Prism 核心管线...")
+    logging.info(f"[*] [阶段 1] 正在提取物理文本并降维至: {output_md_path}")
     
     clarify_success = WordDocClarify(input_docx_path, output_md_path)
     if not clarify_success:
-        print("[!] 文本解析失败，管线终止。")
+        logging.error("[!] 文本解析失败，管线终止。")
         return
 
     # 读取降维后的纯文本，为后续双规扫描做准备
@@ -49,7 +70,7 @@ def main():
     # ==========================================
     # [Pass 1] 全局静态解析与注册 (The Pre-Scan)
     # ==========================================
-    print(f"\n[*] [阶段 2] 启动 Pass 1: 本地 NLP 全局实体预扫描...")
+    logging.info(f"\n[*] [阶段 2] 启动 Pass 1: 本地 NLP 全局实体预扫描...")
     smjs_db = pjson.create_json_template("SMJS", project_title)
     
     # 挂载本地 NLP 引擎，一口气抽干剧本里的所有人名和地名
@@ -59,13 +80,13 @@ def main():
     # ==========================================
     # [Pass 2] 动态切片与 AI 渲染 (The Render Pass)
     # ==========================================
-    print(f"\n[*] [阶段 3] 启动 Pass 2: 逐句生成 SDJS 并挂载 AI 效果器...")
+    logging.info(f"\n[*] [阶段 3] 启动 Pass 2: 逐句生成 SDJS 并挂载 AI 效果器...")
     
     # 预热 AI 接口
     try:
         semantic_engine = PrismSemanticEngine(config_path="Config/config.json")
     except Exception as e:
-        print(f"[Fatal] AI 引擎挂载失败: {e}")
+        logging.error(f"[Fatal] AI 引擎挂载失败: {e}")
         return
 
     blocks = md_text.split('\n\n')
@@ -75,7 +96,7 @@ def main():
     shot_counter = 1
     pending_character = None 
 
-    print("=" * 50)
+    logging.info("=" * 50)
 
     for block in blocks:
         block = block.strip()
@@ -87,7 +108,7 @@ def main():
             if current_sdjs:
                 sdjs_out_path = os.path.join(json_out_dir, f"{project_title}_SDJS_{current_scene_id}.json")
                 pjson.flush_to_disk(current_sdjs, sdjs_out_path)
-                print(f"💾 {current_scene_id} 混缩完毕，物理落盘。")
+                logging.info(f"💾 {current_scene_id} 混缩完毕，物理落盘。")
 
             scene_counter += 1
             current_scene_id = f"scene_{scene_counter}"
@@ -98,7 +119,7 @@ def main():
             
             shot_counter = 1
             pending_character = None
-            print(f"\n🎬 场记打板: {current_scene_id} -> {heading_text}")
+            logging.info(f"\n🎬 场记打板: {current_scene_id} -> {heading_text}")
 
         # [遇到角色名] - 仅记录说话人，不再执行注册操作！
         elif block.startswith('### '):
@@ -157,15 +178,15 @@ def main():
     if current_sdjs:
         sdjs_out_path = os.path.join(json_out_dir, f"{project_title}_SDJS_{current_scene_id}.json")
         pjson.flush_to_disk(current_sdjs, sdjs_out_path)
-        print(f"💾 {current_scene_id} 处理完毕，保存中。")
+        logging.info(f"💾 {current_scene_id} 处理完毕，保存中。")
 
     smjs_out_path = os.path.join(json_out_dir, f"{project_title}_SMJS.json")
     pjson.flush_to_disk(smjs_db, smjs_out_path)
-    print(f"💾 全局实体状态机 SMJS 处理完毕，保存中。")
+    logging.info(f"💾 全局实体状态机 SMJS 处理完毕，保存中。")
 
-    print("=" * 50)
-    print(f"✅ Prism 引擎全量执行完毕！共解析 {scene_counter} 场戏。")
-    print(f"📁 请前往 ./{json_out_dir}/ 查收属于你的赛博剧本宇宙！")
+    logging.info("=" * 50)
+    logging.info(f"✅ Prism 引擎全量执行完毕！共解析 {scene_counter} 场戏。")
+    logging.info(f"📁 请前往 ./{json_out_dir}/ 查收属于你的赛博剧本宇宙！")
 
 if __name__ == "__main__":
     main()
