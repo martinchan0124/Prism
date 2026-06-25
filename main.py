@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from Docx_Clarifier import WordDocClarify
 import Prism_JSON as pjson
 from LLM_Semantic import PrismSemanticEngine
+from NLP_Scanner import PrismNLPEngine  # [新增] 导入本地 NLP 前置扫描器
 
 # 强制加载环境密钥
 load_dotenv()
@@ -41,44 +42,47 @@ def main():
         print("[!] 文本解析失败，管线终止。")
         return
 
+    # 读取降维后的纯文本，为后续双规扫描做准备
+    with open(output_md_path, "r", encoding="utf-8") as f:
+        md_text = f.read()
+
     # ==========================================
-    # 3. 内存系统与 AI 引擎初始化
+    # [Pass 1] 全局静态解析与注册 (The Pre-Scan)
     # ==========================================
-    print(f"[*] [阶段 2] 装载全局状态机与 AI API...")
+    print(f"\n[*] [阶段 2] 启动 Pass 1: 本地 NLP 全局实体预扫描...")
     smjs_db = pjson.create_json_template("SMJS", project_title)
     
+    # 挂载本地 NLP 引擎，一口气抽干剧本里的所有人名和地名
+    nlp_engine = PrismNLPEngine()
+    global_registry = nlp_engine.scan_and_register_entities(md_text, smjs_db)
+
+    # ==========================================
+    # [Pass 2] 动态切片与 AI 渲染 (The Render Pass)
+    # ==========================================
+    print(f"\n[*] [阶段 3] 启动 Pass 2: 逐句生成 SDJS 并挂载 AI 效果器...")
+    
+    # 预热 AI 接口
     try:
         semantic_engine = PrismSemanticEngine(config_path="Config/config.json")
     except Exception as e:
         print(f"[Fatal] AI 引擎挂载失败: {e}")
         return
 
-    # 全局角色动态注册器（用于给新出现的角色发 ID）
-    character_registry = {}
-    next_char_id = 1001
-
-    with open(output_md_path, "r", encoding="utf-8") as f:
-        md_text = f.read()
     blocks = md_text.split('\n\n')
-    
     current_scene_id = None
     current_sdjs = None
     scene_counter = 0
     shot_counter = 1
     pending_character = None 
 
-    print(f"[*] [阶段 3] 开启全文自动化遍历与 AI 语义挂载！")
     print("=" * 50)
 
-    # ==========================================
-    # 4. 主干循环：物理切分 + AI 实时覆写
-    # ==========================================
     for block in blocks:
         block = block.strip()
         if not block:
             continue
 
-        # [遇到场景标题]
+        # [遇到场景标题] - 场记打板与文件落盘
         if block.startswith('# '):
             if current_sdjs:
                 sdjs_out_path = os.path.join(json_out_dir, f"{project_title}_SDJS_{current_scene_id}.json")
@@ -96,23 +100,19 @@ def main():
             pending_character = None
             print(f"\n🎬 场记打板: {current_scene_id} -> {heading_text}")
 
-        # [遇到角色名 - 触发动态注册器]
+        # [遇到角色名] - 仅记录说话人，不再执行注册操作！
         elif block.startswith('### '):
+            # Pass 1 已经把人注册过了，这里只是为了给接下来的台词拼接名字
             pending_character = block.replace('### ', '').replace('\n', ' ').strip()
-            # 如果是剧本中第一次出现该角色，立刻为其注册全局 ID
-            if pending_character not in character_registry:
-                character_registry[pending_character] = next_char_id
-                pjson.register_smjs_entity(smjs_db, "characters", next_char_id, pending_character)
-                print(f"  ↳ 👤 [SMJS 注册] 发现新角色: {pending_character} (ID: {next_char_id})")
-                next_char_id += 1
 
-        # [遇到动作或台词 - 触发物理注入与 AI 分析]
+        # [遇到动作或台词] - 切片并调用 AI
         else:
             if not current_scene_id:
                 continue 
 
-            shots_to_process = [] # 暂存当前需要交给 AI 分析的镜头
+            shots_to_process = []
 
+            # 对白处理
             if pending_character and block.startswith('> '):
                 dialogue_text = block.replace('> ', '').replace('\n', ' ').strip()
                 content_str = f"{pending_character}: {dialogue_text}"
@@ -123,6 +123,7 @@ def main():
                 shots_to_process.append(shot_id)
                 shot_counter += 1
             
+            # 旁白或连续对白处理
             elif pending_character:
                 cleaned_block = block.replace('\n', ' ').strip()
                 content_str = f"{pending_character}: {cleaned_block}"
@@ -133,6 +134,7 @@ def main():
                 shots_to_process.append(shot_id)
                 shot_counter += 1
                 
+            # 纯动作处理 (按句号切分)
             else:
                 sentences = re.split(r'(?<=[.!?])\s+', block)
                 for sentence in sentences:
@@ -145,9 +147,8 @@ def main():
 
             # --- 核心 AI 效果器挂载 ---
             for s_id in shots_to_process:
-                # 调用 DeepSeek 进行内存覆写
-                semantic_engine.process_shot(smjs_db, current_sdjs, current_scene_id, s_id)
-                # 强行睡眠 0.5 秒，防止把 DeepSeek 的 API 并发池瞬间炸毁 (HTTP 429 报错)
+                # [关键改动] 将 Pass 1 提取的 global_registry 作为紧箍咒传给大模型
+                semantic_engine.process_shot(smjs_db, current_sdjs, current_scene_id, s_id, global_registry)
                 time.sleep(0.5)
 
     # ==========================================

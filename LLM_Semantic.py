@@ -24,9 +24,9 @@ class PrismSemanticEngine:
         )
 
     def _build_context_prompt(self, smjs_db: dict, sdjs_scene_db: dict, scene_id: str, shot_id: str) -> str:
-        """
-        [上下文打包器] 将当前的物理环境和硬路由表组装成发给大模型的巨型 Prompt。
-        """
+   
+        # [上下文打包器] 
+        
         # 1. 获取干声 (要处理的短句文本)
         target_shot = sdjs_scene_db["script_scenes"][f"{scene_id}_shots"][shot_id]
         raw_content = target_shot["content"]
@@ -48,7 +48,7 @@ You must construct the 'target_path' arrays exactly as below:
    ["script_scenes", "{scene_id}_shots", "{shot_id}", "Elements"]
 4. To define the spatial path/location ID of the shot:
    ["script_scenes", "{scene_id}_shots", "{shot_id}", "Spatial_path"]
-   
+
 [SEMANTIC EXTRACTION RADAR]
 When populating 'semantic_attributes' for a character, DO NOT be lazy. You must actively scan the text for the following dimensions, BUT ONLY create the key if the text EXPLICITLY mentions it (Do not invent details):
 - "age": Exact age or age range (e.g., "late 20s", "old").
